@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Copy, Check, X, Info } from 'lucide-react';
+import PropTypes from 'prop-types';
 
-const LeaderboardComponent = () => {
+const LeaderboardComponent = ({ actionId }) => {
     const [mounted, setMounted] = useState(false);
     const [leaderboardData, setLeaderboardData] = useState([]);
     const [totalUsers, setTotalUsers] = useState(0);
@@ -13,6 +14,7 @@ const LeaderboardComponent = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [copiedAddress, setCopiedAddress] = useState(null);
+    const [pageInputValue, setPageInputValue] = useState(currentPage);
 
     const ITEMS_PER_PAGE = 10;
 
@@ -23,7 +25,7 @@ const LeaderboardComponent = () => {
             console.log('Fetching data with offset:', offset);
 
             const response = await fetch(
-                `/api/leaderboard?action-id=c312d1072c8249b389b2c31e9cb6dc04&offset=${offset}&limit=${ITEMS_PER_PAGE}`,
+                `/api/leaderboard?action-id=${actionId}&offset=${offset}&limit=${ITEMS_PER_PAGE}`,
                 {
                     headers: {
                         'X-API-KEY': process.env.NEXT_PUBLIC_LEADERBOARD_API_KEY,
@@ -66,6 +68,22 @@ const LeaderboardComponent = () => {
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
             setCurrentPage(newPage);
+        }
+    };
+
+    const handlePageInput = (e) => {
+        const value = e.target.value;
+        setPageInputValue(value);
+    };
+
+    const handlePageInputKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            const page = Number(pageInputValue);
+            if (page >= 1 && page <= totalPages) {
+                handlePageChange(page);
+            } else {
+                setPageInputValue(currentPage);
+            }
         }
     };
 
@@ -115,11 +133,32 @@ const LeaderboardComponent = () => {
     }
 
     return (
-        <div className="w-[60vw] mx-auto bg-white rounded-lg shadow">
+        <div className="w-[75vw] mx-auto bg-white rounded-lg shadow">
             <div className="p-4 sm:p-6 border-b">
                 <div className="flex justify-between items-start mb-4">
                     <h2 className="text-2xl font-bold">Leaderboard</h2>
                 </div>
+
+                <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                        <p className="text-sm text-gray-600">Average XP</p>
+                        <p className="text-xl font-bold">{totalUsers ? (totalXp / totalUsers).toFixed(0).toLocaleString() : '0'}</p>
+                    </div>
+                    <div className="text-center border-x">
+                        <p className="text-sm text-gray-600">Highest XP</p>
+                        <p className="text-xl font-bold">
+                            {leaderboardData.length > 0
+                                ? Math.max(...leaderboardData.map(item => item.xp)).toLocaleString()
+                                : '0'
+                            }
+                        </p>
+                    </div>
+                    <div className="text-center">
+                        <p className="text-sm text-gray-600">Total Participants</p>
+                        <p className="text-xl font-bold">{totalUsers.toLocaleString()}</p>
+                    </div>
+                </div>
+
                 <div className="flex items-center gap-2 mb-4">
                     <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -132,6 +171,7 @@ const LeaderboardComponent = () => {
                         />
                     </div>
                 </div>
+
                 <div className="text-sm text-gray-500">
                     Total Users: {totalUsers} | Total XP: {totalXp.toLocaleString()}
                 </div>
@@ -178,27 +218,49 @@ const LeaderboardComponent = () => {
                             </table>
                         </div>
 
-                        <div className="flex justify-between items-center mt-4">
+                        <div className="flex justify-between items-center mt-4 px-4 sm:px-6">
                             <div className="text-sm text-gray-500">
                                 Page {currentPage} of {totalPages}
                             </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handlePageChange(currentPage - 1)}
-                                    disabled={currentPage === 1}
-                                    className="px-4 py-2 flex items-center gap-1 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                    Previous
-                                </button>
-                                <button
-                                    onClick={() => handlePageChange(currentPage + 1)}
-                                    disabled={currentPage === totalPages}
-                                    className="px-4 py-2 flex items-center gap-1 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                                >
-                                    Next
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
+
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="relative flex items-center group">
+                                        <Info className="w-4 h-4 text-gray-400 mr-1 cursor-help" />
+                                        <div className="absolute bottom-full mb-2 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded p-2 shadow-lg">
+                                            Type the page number and press Enter to navigate
+                                        </div>
+                                    </div>
+                                    <span className="text-sm text-gray-600">Go to page:</span>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={totalPages}
+                                        value={pageInputValue}
+                                        onChange={handlePageInput}
+                                        onKeyDown={handlePageInputKeyDown}
+                                        className="w-16 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handlePageChange(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        className="px-4 py-2 flex items-center gap-1 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                                    >
+                                        <ChevronLeft className="w-4 h-4" />
+                                        Previous
+                                    </button>
+                                    <button
+                                        onClick={() => handlePageChange(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                        className="px-4 py-2 flex items-center gap-1 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                                    >
+                                        Next
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </>
@@ -206,6 +268,10 @@ const LeaderboardComponent = () => {
             </div>
         </div>
     );
+};
+
+LeaderboardComponent.propTypes = {
+    actionId: PropTypes.string.isRequired
 };
 
 export default LeaderboardComponent;
