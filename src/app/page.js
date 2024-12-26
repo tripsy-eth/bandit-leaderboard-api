@@ -6,7 +6,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-24">
       <Layout>
         <LeaderboardComponent
-          actionId="c312d1072c8249b389b2c31e9cb6dc04"
+          actionId="b9f4efd8d8eb4c4cbbb3845bd738064d"
         />
       </Layout>
     </main>

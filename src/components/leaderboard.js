@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, Copy, Check, X, Info } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Copy, Check, X, Info, Trophy, Share2 } from 'lucide-react';
 import PropTypes from 'prop-types';
 
 const LeaderboardComponent = ({ actionId }) => {
@@ -15,6 +15,7 @@ const LeaderboardComponent = ({ actionId }) => {
     const [error, setError] = useState(null);
     const [copiedAddress, setCopiedAddress] = useState(null);
     const [pageInputValue, setPageInputValue] = useState(currentPage);
+    const [topThree, setTopThree] = useState([]);
 
     const ITEMS_PER_PAGE = 10;
 
@@ -22,7 +23,6 @@ const LeaderboardComponent = ({ actionId }) => {
         try {
             setIsLoading(true);
             const offset = (page - 1) * ITEMS_PER_PAGE;
-            console.log('Fetching data with offset:', offset);
 
             const response = await fetch(
                 `/api/leaderboard?action-id=${actionId}&offset=${offset}&limit=${ITEMS_PER_PAGE}`,
@@ -35,20 +35,15 @@ const LeaderboardComponent = ({ actionId }) => {
                 }
             );
 
-            console.log('Response status:', response.status);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Error response:', errorText);
-                throw new Error(`Failed to fetch leaderboard data: ${response.status} ${errorText}`);
-            }
-
             if (!response.ok) {
                 throw new Error('Failed to fetch leaderboard data');
             }
 
             const data = await response.json();
             setLeaderboardData(data.leaderboard);
+            if (page === 1) {
+                setTopThree(data.leaderboard.slice(0, 3));
+            }
             setTotalUsers(data.totalUser);
             setTotalXp(data.totalXp);
         } catch (err) {
@@ -102,6 +97,76 @@ const LeaderboardComponent = ({ actionId }) => {
         }
     };
 
+    const shareToTwitter = (rank, xp) => {
+        const text = `Hey! I am at Rank ${rank} with ${xp.toLocaleString()} XP on bandit's quest here: bandit.network`;
+        const encodedText = encodeURIComponent(text);
+        const twitterUrl = `https://x.com/intent/post?text=${encodedText}`;
+        window.open(twitterUrl, '_blank', 'noopener,noreferrer');
+    };
+
+    const CardShowcase = () => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {topThree.map((leader, index) => (
+                <div
+                    key={leader.walletAddress}
+                    className={`
+                        p-6 rounded-lg shadow-lg transform hover:scale-105 transition-transform
+                        ${index === 0
+                            ? 'bg-yellow-50 ring-2 ring-yellow-400'
+                            : index === 1
+                                ? 'bg-gray-50 ring-2 ring-gray-300'
+                                : 'bg-orange-50 ring-2 ring-orange-300'}
+                    `}
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <span className="text-2xl">
+                            {index === 0 ? '👑' : index === 1 ? '🥈' : '🥉'}
+                        </span>
+                        <span className={`text-xl font-bold ${index === 0
+                            ? 'text-yellow-700'
+                            : index === 1
+                                ? 'text-gray-700'
+                                : 'text-orange-700'
+                            }`}>
+                            #{index + 1}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2 font-mono text-sm mb-2">
+                        <span className="truncate flex-1">
+                            {leader.walletAddress}
+                        </span>
+                        <button
+                            onClick={() => copyToClipboard(leader.walletAddress)}
+                            className="p-1 hover:bg-gray-100 rounded transition-colors"
+                            title="Copy wallet address"
+                        >
+                            {copiedAddress === leader.walletAddress ? (
+                                <Check className="w-4 h-4 text-green-500" />
+                            ) : (
+                                <Copy className="w-4 h-4 text-gray-500" />
+                            )}
+                        </button>
+                        <button
+                            onClick={() => shareToTwitter(leader.rank, leader.xp)}
+                            className="p-1 hover:bg-gray-100 rounded transition-colors"
+                            title="Share on Twitter"
+                        >
+                            <Share2 className="w-4 h-4 text-gray-500 hover:text-blue-400" />
+                        </button>
+                    </div>
+                    <div className={`text-xl font-bold ${index === 0
+                        ? 'text-yellow-600'
+                        : index === 1
+                            ? 'text-gray-600'
+                            : 'text-orange-600'
+                        }`}>
+                        {leader.xp.toLocaleString()} XP
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
     if (!mounted) {
         return (
             <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow">
@@ -139,25 +204,7 @@ const LeaderboardComponent = ({ actionId }) => {
                     <h2 className="text-2xl font-bold">Leaderboard</h2>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                    <div className="text-center">
-                        <p className="text-sm text-gray-600">Average XP</p>
-                        <p className="text-xl font-bold">{totalUsers ? (totalXp / totalUsers).toFixed(0).toLocaleString() : '0'}</p>
-                    </div>
-                    <div className="text-center border-x">
-                        <p className="text-sm text-gray-600">Highest XP</p>
-                        <p className="text-xl font-bold">
-                            {leaderboardData.length > 0
-                                ? Math.max(...leaderboardData.map(item => item.xp)).toLocaleString()
-                                : '0'
-                            }
-                        </p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-sm text-gray-600">Total Participants</p>
-                        <p className="text-xl font-bold">{totalUsers.toLocaleString()}</p>
-                    </div>
-                </div>
+                <CardShowcase />
 
                 <div className="flex items-center gap-2 mb-4">
                     <div className="relative flex-1 max-w-sm">
@@ -172,8 +219,43 @@ const LeaderboardComponent = ({ actionId }) => {
                     </div>
                 </div>
 
-                <div className="text-sm text-gray-500">
-                    Total Users: {totalUsers} | Total XP: {totalXp.toLocaleString()}
+                <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <Trophy className="w-5 h-5 text-yellow-500" />
+                        Overall Stats
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg shadow-sm">
+                            <div className="text-sm text-gray-600 mb-1">Average XP</div>
+                            <div className="text-xl font-bold text-blue-700">
+                                {totalUsers ? (totalXp / totalUsers).toFixed(0).toLocaleString() : '0'}
+                            </div>
+                        </div>
+
+                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg shadow-sm">
+                            <div className="text-sm text-gray-600 mb-1">Highest XP</div>
+                            <div className="text-xl font-bold text-purple-700">
+                                {leaderboardData.length > 0
+                                    ? Math.max(...leaderboardData.map(item => item.xp)).toLocaleString()
+                                    : '0'
+                                }
+                            </div>
+                        </div>
+
+                        <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg shadow-sm">
+                            <div className="text-sm text-gray-600 mb-1">Total Participants</div>
+                            <div className="text-xl font-bold text-green-700">
+                                {totalUsers.toLocaleString()}
+                            </div>
+                        </div>
+
+                        <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-lg shadow-sm">
+                            <div className="text-sm text-gray-600 mb-1">Total XP Claimed</div>
+                            <div className="text-xl font-bold text-amber-700">
+                                {totalXp.toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

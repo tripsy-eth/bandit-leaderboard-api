@@ -38,6 +38,8 @@ The `actionId` prop is required and determines which leaderboard data to display
 ## Features
 
 - Configurable leaderboard via actionId prop
+- Top 3 winners showcase with special card designs
+- Social sharing functionality (Twitter/X)
 - Paginated display of leaderboard data
 - Search filtering by wallet address  
 - Copy wallet address functionality
@@ -62,6 +64,15 @@ Create a `.env.local` file based on `.env.example` and add your API key. The `.e
 | actionId | string | Yes | Unique identifier for the specific leaderboard to display |
 
 ## Interactive Features
+
+### Top Winners Showcase
+- Special cards highlighting the top 3 participants
+- Distinctive styling for gold, silver, and bronze positions
+- Quick actions for copying wallet addresses and social sharing
+
+### Social Integration
+- Share achievements directly to Twitter/X
+- Customized sharing message with rank and XP details
 
 ### Statistics Summary
 Displays key metrics at the top of the leaderboard:
