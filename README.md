@@ -1,4 +1,4 @@
-# Bandit Leaderboard
+# Bandit Leaderboard Component
 
 A simple React component that displays a leaderboard using the Bandit API. Shows user rankings, wallet addresses and XP scores in a paginated table with search functionality.
 
